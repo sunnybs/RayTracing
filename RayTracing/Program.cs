@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Numerics;
+using System.Threading.Tasks;
 
 namespace RayTracing
 {
@@ -21,13 +23,24 @@ namespace RayTracing
         private static Color[] Render()
         {
             var frameBuffer = new Color[Height * Width];
+
+            var tasks = new List<Task>();
             for (var x = 0; x < Width; x++)
             for (var y = 0; y < Height; y++)
             {
-                var rayDirection = GetRayViewportDirection(x, y);
-                frameBuffer[x + y * Width] = TraceRay(Scene.CameraPosition, rayDirection, 3);
+                var localX = x;
+                var localY = y;
+                var task = new Task((() =>
+                {
+                    var rayDirection = GetRayViewportDirection(localX, localY);
+                    frameBuffer[localX + localY * Width] = TraceRay(Scene.CameraPosition, rayDirection, 3);
+                }));
+
+                tasks.Add(task);
+                task.Start();
             }
 
+            Task.WaitAll(tasks.ToArray());
             return frameBuffer;
         }
 
